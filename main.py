@@ -13,7 +13,12 @@ from discord.ext import commands
 from utils.dataIO import fileIO
 from random import choice as randchoice
 
-prefix = "b!"
+with open('config.json') as f:
+	config = json.load(f)
+
+prefix = config['PREFIX']
+token = config['TOKEN']
+logch = config['LOG_CHANNEL']
 description = 'Brooklyn - An open source discord bot for the public! Coded by Young™ with love.'
 bot = commands.Bot(command_prefix=(prefix), description=description)
 start_time = time.time()
@@ -26,7 +31,6 @@ modules = [
     'modules.audio',
     'modules.fun',
     'modules.joinmsg',
-    'modules.gfx',
     'modules.autorole',
     'modules.repl',
     'modules.bump',
@@ -88,7 +92,7 @@ async def on_message_edit(before, message):
     server = message.server
     channel = message.channel
     settings = {"Channels" : [], "Users" : [], "Roles" : []}
-    if message.content.startswith("b!"):
+    if message.content.startswith(prefix):
         if server.id not in db:
             db[server.id] = settings
             fileIO("data/ignore/ignore_list.json", "save", db)
@@ -124,7 +128,7 @@ async def on_command_error(error, ctx):
         await bot.send_message(channel, ":x: This command is on cooldown. Try again in {:.2f}s".format(error.retry_after))
     else:
         if ctx.command:
-            await bot.send_message(ctx.message.channel, "{} :bangbang: An error occured while processing the `{}` command.\n\nPlease use `b!report <command name>`!!".format(ctx.message.author.mention, ctx.command.name))
+            await bot.send_message(ctx.message.channel, "{} :bangbang: An error occured while processing the `{}` command.\n\nPlease use `{}report <command name>`!!".format(ctx.message.author.mention, ctx.command.name, prefix))
         print('Ignoring exception in command {}'.format(ctx.command), file=sys.stderr)
         traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
 
@@ -148,19 +152,26 @@ class Default():
     def __init__(self, bot):
         self.bot = bot
 
+@bot.command(hidden=True, pass_context=True, aliases=["logout","sd"])
+@checks.is_owner()
+async def shutdown(self):
+        """Shuts down Brooklyn"""
+        await self.bot.say("Successfully Shutdown \U0001f44c")
+        await self.bot.logout()
+
 @bot.command(hidden=True, pass_context=True)
 @checks.is_owner()
 async def setgame(self, ctx, *, game=None):
     """Sets Brooklyn's playing status
         Leaving this empty will clear it."""
-    server = ctx.message.server
-    current_status = server.me.status if server is not None else None
-    if game:
-        game = game.strip()
-        await self.bot.change_presence(game=discord.Game(name=game), status=current_status)
+    if game is not None:
+        await self.bot.change_presence(game=discord.Game(name=str(game)),
+                                       status=None)
+        msg = "I've set my game to `{}` \U00002611".format(game)
     else:
-        await self.bot.change_presence(game=None, status=current_status)
-    await self.bot.say(":ok_hand:")
+        await self.bot.change_presence(game=None, status=None)
+        msg = 'I\'ve removed my playing status.'
+    await self.bot.say(msg)
 
 @bot.command()
 async def uptime():
@@ -263,7 +274,7 @@ async def setname(ctx, *, name: str):
 bot.add_cog(Default(bot))
 loop = asyncio.get_event_loop()
 try:
-    loop.run_until_complete(bot.login(""))
+    loop.run_until_complete(bot.login(token))
     loop.run_until_complete(bot.connect())
 except Exception:
     loop.run_until_complete(os.system("main.py"))
