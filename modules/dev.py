@@ -1,6 +1,7 @@
 import discord
 import asyncio
 import datetime
+import json
 from discord.ext import commands
 from subprocess import check_output, CalledProcessError
 from utils import checks
@@ -8,7 +9,9 @@ from utils.dataIO import dataIO, fileIO
 from utils.chat_formatting import pagify, box
 
 wrap = "```py\n{}```"
-
+with open('config.json') as f:
+	config = json.load(f)
+owner = config['OWNER_ID']
 class Dev:
     def __init__(self, bot):
         self.bot = bot
@@ -25,7 +28,9 @@ class Dev:
 **Github:** {}
 **Sever:** {}
 
-If you ever have problems with the bot please stop by the support server so we can guide you through your issue. :heart:"""
+If you ever have problems with the bot please stop by the support server so we can guide you through your issue. :heart:
+
+**DISCLAIMER:** Brooklyn is packed with reds audio modules, and some of the utils. I do claim any credit for making the code. All respect goes to the developers and contributers to red. :ok_hand:"""
         await self.bot.say(msg.format(author, link, server))
 
     @commands.command(pass_context=True)
@@ -38,6 +43,7 @@ If you ever have problems with the bot please stop by the support server so we c
             e.add_field(name="Message:", value=command_name, inline=False)
             e.set_thumbnail(url=ctx.message.author.avatar_url)
             await self.bot.send_message(discord.User(id=self.config["OWNER_ID"]), embed=e)
+            await self.bot.send_message(discord.User(id=owner), embed=e)
         except Exception as e:
             await self.bot.say(embed=discord.Embed(description=wrap.format(type(e).__name__ + ': ' + str(e)), colour=discord.Colour.red()))
         else:
